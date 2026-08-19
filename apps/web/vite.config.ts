@@ -12,5 +12,12 @@ export default defineConfig({
     host: '127.0.0.1',
     port: 5273,
     strictPort: true,
+    proxy: {
+      '/api': {
+        target: 'https://cookapps.net',
+        changeOrigin: true,
+        secure: true,
+      },
+    },
   },
 });

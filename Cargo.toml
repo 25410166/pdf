@@ -4,5 +4,5 @@
 # casual-pdf-core` run from the repo root and gives every member one shared
 # target/ and lockfile.
 [workspace]
-members = ["crates/*"]
+members = ["crates/*", "src-tauri"]
 resolver = "2"

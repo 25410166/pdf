@@ -33,6 +33,19 @@ window.addEventListener('vite:preloadError', (e) => {
   }
 });
 
+// Global Tauri deep-link listener: forward cpdf:deeplink IPC events from Rust
+// to DOM CustomEvents so AuthDialog (or any component) can react regardless of
+// when its own useEffect listener was registered.
+(function setupDeepLinkBridge() {
+  const tauri = (window as any).__TAURI__;
+  if (!tauri?.event?.listen) return;
+  tauri.event.listen('cpdf:deeplink', (event: { payload: { url?: string } }) => {
+    const url = event.payload?.url;
+    if (!url) return;
+    window.dispatchEvent(new CustomEvent('cpdf:deeplink', { detail: { url } }));
+  });
+})();
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />

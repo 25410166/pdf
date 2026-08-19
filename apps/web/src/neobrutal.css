@@ -34,22 +34,22 @@
   --color-text-on-accent: #ffffff;
   --color-accent-fg: #ffffff;
 
-  /* One violet signal */
-  --color-accent: #8b5cf6;
-  --color-accent-hover: #7c3aed;
-  --color-accent-active: #6d28d9;
-  --color-accent-soft: #ede6ff; /* violet tint fill */
-  --color-accent-bright: #8b5cf6;
+  /* CookApps Warm Brown signal */
+  --color-accent: #7c2d12;
+  --color-accent-hover: #9a3412;
+  --color-accent-active: #c2410c;
+  --color-accent-soft: #ffedd5; /* warm brown tint fill */
+  --color-accent-bright: #9a3412;
 
   /* Borders — structural ink (2px applied in the CSS sweep) */
   --color-border: #14110c;
   --color-border-strong: #14110c;
   --color-divider: #d8d2c4; /* softer internal divider */
 
-  /* Focus + selection = violet */
-  --color-focus-ring: #8b5cf6;
-  --color-selected: #ede6ff;
-  --color-selected-strong: #8b5cf6;
+  /* Focus + selection = CookApps brown */
+  --color-focus-ring: #9a3412;
+  --color-selected: #ffedd5;
+  --color-selected-strong: #7c2d12;
 
   /* Interaction tints */
   --color-hover: rgba(20, 17, 12, 0.05);
@@ -68,13 +68,12 @@
   --color-success-soft: #dbf3e0;
   --color-warning: #d97706;
   --color-warning-soft: #fbecd0;
-  --color-info: #2563eb;
-  --color-info-soft: #dce7fd;
+  --color-info: #7c2d12;
+  --color-info-soft: #ffedd5;
 
-  /* ── Tokens the app references but the design system never defined
-     (were leaking literal #2d8cff / #7c3aed fallbacks) ── */
-  --color-primary: #8b5cf6; /* markup/text-edit accents → violet */
-  --color-suggest: #8b5cf6; /* suggestion overlay → violet */
+  /* ── Tokens the app references but the design system never defined ── */
+  --color-primary: #7c2d12; /* markup/text-edit accents → CookApps brown */
+  --color-suggest: #7c2d12; /* suggestion overlay → CookApps brown */
   --color-success-bg: #dbf3e0;
   --color-warning-bg: #fbecd0;
   --color-accent-bright-fg: #ffffff;

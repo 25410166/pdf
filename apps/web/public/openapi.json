@@ -1,0 +1,1391 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "CookApps Authentication API",
+    "version": "1.0.0",
+    "description": "Current authentication contract for CookApps web and desktop applications. Desktop login uses a short-lived request, browser approval, PKCE exchange, device binding, plan entitlement checks, and an Ed25519 offline lease token.",
+    "contact": {
+      "email": "cookhelper@cookapps.net"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://cookapps.net",
+      "description": "Production"
+    },
+    {
+      "url": "http://localhost:3000",
+      "description": "Local development"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Web authentication"
+    },
+    {
+      "name": "Desktop authentication"
+    },
+    {
+      "name": "Desktop session"
+    }
+  ],
+  "paths": {
+    "/api/auth/magic-link": {
+      "post": {
+        "tags": ["Web authentication"],
+        "summary": "Send email sign-in link",
+        "description": "Creates a one-time email link. The user is not signed in until the link is confirmed.",
+        "operationId": "sendMagicLink",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MagicLinkRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Email sent or cooldown response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MagicLinkSentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/api/auth/magic-link/confirm": {
+      "post": {
+        "tags": ["Web authentication"],
+        "summary": "Confirm email sign-in",
+        "description": "Consumes the one-time token, creates the account if needed, returns a 7-day web JWT, and sets the HttpOnly ca_access_token cookie.",
+        "operationId": "confirmMagicLink",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MagicLinkConfirmRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Email confirmed and web session created.",
+            "headers": {
+              "Set-Cookie": {
+                "$ref": "#/components/headers/AuthCookie"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAuthResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/api/auth/google": {
+      "post": {
+        "tags": ["Web authentication"],
+        "summary": "Sign in with Google",
+        "description": "Validates a Google Identity Services ID token server-side before creating a web session.",
+        "operationId": "googleLogin",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoogleLoginRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Google login successful.",
+            "headers": {
+              "Set-Cookie": {
+                "$ref": "#/components/headers/AuthCookie"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAuthResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/api/auth/me": {
+      "get": {
+        "tags": ["Web authentication"],
+        "summary": "Read current web session",
+        "description": "Validates a web JWT from Authorization and returns plan, family membership, and device limits.",
+        "operationId": "getCurrentWebSession",
+        "security": [
+          {
+            "webAccessToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authenticated web user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthMeResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/api/desktop/auth/start": {
+      "post": {
+        "tags": ["Desktop authentication"],
+        "summary": "Start desktop login",
+        "description": "Creates a 10-minute request. The app stores state, codeVerifier, deviceKey, and opens loginUrl in the browser.",
+        "operationId": "startDesktopLogin",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DesktopAuthStartRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Desktop request created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DesktopAuthStartResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/api/desktop/auth/request": {
+      "get": {
+        "tags": ["Desktop authentication"],
+        "summary": "Read desktop login request",
+        "operationId": "getDesktopLoginRequest",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DesktopRequestToken"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Request details for the website approval page.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DesktopAuthRequestResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "410": {
+            "$ref": "#/components/responses/Gone"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/api/desktop/auth/approve": {
+      "post": {
+        "tags": ["Desktop authentication"],
+        "summary": "Approve desktop login",
+        "description": "Called by the website after Google or magic-link login. Enforces free/paid entitlement and Personal=1 / Family=5 active desktop devices.",
+        "operationId": "approveDesktopLogin",
+        "security": [
+          {
+            "cookappsAuthCookie": []
+          },
+          {
+            "webAccessToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DesktopAuthApproveRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Approval created. Open callbackUrl in the desktop app.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DesktopAuthApproveResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "410": {
+            "$ref": "#/components/responses/Gone"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/api/desktop/auth/exchange": {
+      "post": {
+        "tags": ["Desktop authentication"],
+        "summary": "Exchange desktop callback code",
+        "description": "Called after the cookapps-{appSlug}://auth callback. Validates one-time code, device binding, and S256 PKCE, then returns a desktop JWT and Ed25519 lease.",
+        "operationId": "exchangeDesktopLoginCode",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DesktopAuthExchangeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Desktop session created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DesktopAuthExchangeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/api/desktop/session": {
+      "get": {
+        "tags": ["Desktop session"],
+        "summary": "Verify desktop session and entitlement",
+        "description": "Checks desktop JWT, device key, Ed25519 request proof, current IP, revocation, and app entitlement. IP changes return IP_REAUTH_REQUIRED.",
+        "operationId": "verifyDesktopSession",
+        "security": [
+          {
+            "desktopAccessToken": [],
+            "desktopDeviceKey": [],
+            "deviceTimestamp": [],
+            "deviceNonce": [],
+            "deviceSignature": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AppSlug"
+          },
+          {
+            "$ref": "#/components/parameters/DeviceKeyHeader"
+          },
+          {
+            "$ref": "#/components/parameters/DeviceTimestampHeader"
+          },
+          {
+            "$ref": "#/components/parameters/DeviceNonceHeader"
+          },
+          {
+            "$ref": "#/components/parameters/DeviceSignatureHeader"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Desktop session and entitlement are valid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DesktopSessionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/api/desktop/download": {
+      "get": {
+        "tags": ["Desktop session"],
+        "summary": "Prepare app download",
+        "description": "Returns the published R2 artifact after checking app availability and paid-app entitlement. Free apps may omit Authorization.",
+        "operationId": "prepareDesktopDownloadGet",
+        "security": [
+          {},
+          {
+            "webAccessToken": []
+          },
+          {
+            "desktopAccessToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AppSlug"
+          },
+          {
+            "$ref": "#/components/parameters/DownloadPlatform"
+          },
+          {
+            "$ref": "#/components/parameters/DownloadArch"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Published artifact available.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DesktopDownloadResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      },
+      "post": {
+        "tags": ["Desktop session"],
+        "summary": "Prepare app download with JSON body",
+        "operationId": "prepareDesktopDownloadPost",
+        "security": [
+          {},
+          {
+            "webAccessToken": []
+          },
+          {
+            "desktopAccessToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DesktopDownloadRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Published artifact available.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DesktopDownloadResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/api/desktop/active": {
+      "post": {
+        "tags": ["Desktop authentication"],
+        "summary": "Deprecated device activation endpoint",
+        "deprecated": true,
+        "description": "Use /api/desktop/auth/start and /api/desktop/auth/exchange.",
+        "operationId": "deprecatedDesktopActive",
+        "responses": {
+          "410": {
+            "$ref": "#/components/responses/Gone"
+          }
+        }
+      }
+    },
+    "/api/desktop/revoke-and-active": {
+      "post": {
+        "tags": ["Desktop authentication"],
+        "summary": "Deprecated device replacement endpoint",
+        "deprecated": true,
+        "description": "Device replacement is selected during /api/desktop/auth/approve.",
+        "operationId": "deprecatedDesktopRevokeAndActive",
+        "responses": {
+          "410": {
+            "$ref": "#/components/responses/Gone"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "webAccessToken": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "7-day JWT from magic-link confirmation or Google login. tokenUse=web."
+      },
+      "desktopAccessToken": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "7-day JWT from desktop exchange. tokenUse=desktop and deviceId are claims."
+      },
+      "cookappsAuthCookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "ca_access_token",
+        "description": "HttpOnly web-session cookie set by magic-link confirmation or Google login."
+      },
+      "desktopDeviceKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-cookapps-device-key"
+      },
+      "deviceTimestamp": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-cookapps-timestamp",
+        "description": "Unix timestamp seconds; maximum clock skew is 300 seconds."
+      },
+      "deviceNonce": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-cookapps-nonce",
+        "description": "Unique URL-safe nonce per proof request."
+      },
+      "deviceSignature": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-cookapps-signature",
+        "description": "Base64url Ed25519 signature over METHOD, path+query, timestamp, and nonce separated by newlines."
+      }
+    },
+    "headers": {
+      "AuthCookie": {
+        "description": "HttpOnly, Secure in production, SameSite=Strict, 7-day ca_access_token cookie.",
+        "schema": {
+          "type": "string"
+        }
+      }
+    },
+    "parameters": {
+      "DesktopRequestToken": {
+        "name": "request",
+        "in": "query",
+        "required": true,
+        "description": "Short-lived request token from POST /api/desktop/auth/start.",
+        "schema": {
+          "type": "string",
+          "maxLength": 256
+        }
+      },
+      "AppSlug": {
+        "name": "appSlug",
+        "in": "query",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+          "example": "catnotes"
+        }
+      },
+      "DeviceKeyHeader": {
+        "name": "x-cookapps-device-key",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 160
+        }
+      },
+      "DeviceTimestampHeader": {
+        "name": "x-cookapps-timestamp",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "pattern": "^[0-9]+$"
+        }
+      },
+      "DeviceNonceHeader": {
+        "name": "x-cookapps-nonce",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 16,
+          "maxLength": 256,
+          "pattern": "^[A-Za-z0-9._~-]+$"
+        }
+      },
+      "DeviceSignatureHeader": {
+        "name": "x-cookapps-signature",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "byte"
+        }
+      },
+      "DownloadPlatform": {
+        "name": "platform",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "$ref": "#/components/schemas/DownloadPlatform"
+        },
+        "example": "macos"
+      },
+      "DownloadArch": {
+        "name": "arch",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "$ref": "#/components/schemas/DownloadArch"
+        },
+        "example": "arm64"
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Request validation failed.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Missing, invalid, expired, or unauthorized credentials.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "Inactive account or plan is not entitled to the app.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "App or user was not found.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "Conflict": {
+        "description": "Token, device, IP, or plan state conflict.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "Gone": {
+        "description": "One-time request expired or endpoint retired.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "RateLimited": {
+        "description": "Too many requests.",
+        "headers": {
+          "Retry-After": {
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "ServiceUnavailable": {
+        "description": "Required server configuration is unavailable.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "ServerError": {
+        "description": "Unexpected server error.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "ErrorResponse": {
+        "type": "object",
+        "required": ["success", "error"],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": false
+          },
+          "authenticated": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string",
+            "description": "Stable machine-readable code."
+          },
+          "error": {
+            "type": "string"
+          },
+          "details": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "checkoutUrl": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true
+          },
+          "planCode": {
+            "$ref": "#/components/schemas/PlanCode"
+          },
+          "planRequired": {
+            "$ref": "#/components/schemas/PlanCode"
+          }
+        }
+      },
+      "PlanCode": {
+        "type": "string",
+        "enum": ["FREE", "PERSONAL", "FAMILY"],
+        "nullable": true
+      },
+      "Platform": {
+        "type": "string",
+        "enum": ["macOS", "Windows"]
+      },
+      "MagicLinkRequest": {
+        "type": "object",
+        "required": ["email"],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254
+          },
+          "returnTo": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "Optional same-site path beginning with /."
+          }
+        }
+      },
+      "MagicLinkConfirmRequest": {
+        "type": "object",
+        "required": ["token"],
+        "properties": {
+          "token": {
+            "type": "string",
+            "maxLength": 256
+          }
+        }
+      },
+      "GoogleLoginRequest": {
+        "type": "object",
+        "required": ["idToken"],
+        "properties": {
+          "idToken": {
+            "type": "string",
+            "description": "Google Identity Services credential."
+          }
+        }
+      },
+      "WebSession": {
+        "type": "object",
+        "required": ["userId", "email", "name", "picture", "referralCode", "planCode"],
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "name": {
+            "type": "string"
+          },
+          "picture": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true
+          },
+          "referralCode": {
+            "type": "string"
+          },
+          "planCode": {
+            "$ref": "#/components/schemas/PlanCode"
+          },
+          "trialEndsAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "WebAuthResponse": {
+        "type": "object",
+        "required": ["success", "message", "session", "accessToken"],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "session": {
+            "$ref": "#/components/schemas/WebSession"
+          },
+          "accessToken": {
+            "type": "string"
+          }
+        }
+      },
+      "MagicLinkSentResponse": {
+        "type": "object",
+        "required": ["success"],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "alreadySent": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string",
+            "example": "MAGIC_LINK_ALREADY_SENT"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "AuthMeResponse": {
+        "type": "object",
+        "required": ["authenticated", "user"],
+        "properties": {
+          "authenticated": {
+            "type": "boolean",
+            "example": true
+          },
+          "user": {
+            "type": "object",
+            "required": ["userId", "email", "name", "picture", "planCode", "isFamilyMember", "status", "activeDevicesCount", "maxDevicesAllowed"],
+            "properties": {
+              "userId": {
+                "type": "string"
+              },
+              "email": {
+                "type": "string",
+                "format": "email"
+              },
+              "name": {
+                "type": "string"
+              },
+              "picture": {
+                "type": "string",
+                "format": "uri",
+                "nullable": true
+              },
+              "referralCode": {
+                "type": "string"
+              },
+              "planCode": {
+                "$ref": "#/components/schemas/PlanCode"
+              },
+              "isFamilyMember": {
+                "type": "boolean"
+              },
+              "status": {
+                "type": "string"
+              },
+              "trialEndsAt": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": true
+              },
+              "activeDevicesCount": {
+                "type": "integer"
+              },
+              "maxDevicesAllowed": {
+                "type": "integer",
+                "enum": [1, 5]
+              }
+            }
+          }
+        }
+      },
+      "DesktopAuthStartRequest": {
+        "type": "object",
+        "required": ["appSlug", "deviceKey", "deviceName", "platform", "state", "codeChallenge", "publicKeyEd25519"],
+        "properties": {
+          "appSlug": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "deviceKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 160,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "deviceName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "platform": {
+            "$ref": "#/components/schemas/Platform"
+          },
+          "state": {
+            "type": "string",
+            "minLength": 16,
+            "maxLength": 256,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "codeChallenge": {
+            "type": "string",
+            "minLength": 43,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "publicKeyEd25519": {
+            "type": "string",
+            "format": "byte",
+            "description": "Base64 DER SPKI Ed25519 public key."
+          }
+        }
+      },
+      "DesktopAuthStartResponse": {
+        "type": "object",
+        "required": ["success", "loginUrl", "callbackScheme", "expiresAt"],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "loginUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "callbackScheme": {
+            "type": "string",
+            "example": "cookapps-catnotes"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "DesktopAuthRequest": {
+        "type": "object",
+        "required": ["appSlug", "appName", "deviceName", "platform", "status", "expiresAt"],
+        "properties": {
+          "appSlug": {
+            "type": "string"
+          },
+          "appName": {
+            "type": "string"
+          },
+          "deviceName": {
+            "type": "string"
+          },
+          "platform": {
+            "$ref": "#/components/schemas/Platform"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["PENDING", "APPROVED", "CONSUMED"]
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "DesktopAuthRequestResponse": {
+        "type": "object",
+        "required": ["success", "request"],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "request": {
+            "$ref": "#/components/schemas/DesktopAuthRequest"
+          }
+        }
+      },
+      "DesktopAuthApproveRequest": {
+        "type": "object",
+        "required": ["request"],
+        "properties": {
+          "request": {
+            "type": "string",
+            "maxLength": 256
+          },
+          "replaceDeviceId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Send after DEVICE_LIMIT_REACHED when replacing an active device."
+          }
+        }
+      },
+      "DesktopAuthApproveResponse": {
+        "type": "object",
+        "required": ["success", "approved", "callbackUrl", "expiresAt"],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "approved": {
+            "type": "boolean",
+            "example": true
+          },
+          "callbackUrl": {
+            "type": "string",
+            "format": "uri",
+            "description": "cookapps-{appSlug}://auth?code=...&state=..."
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "DesktopAuthExchangeRequest": {
+        "type": "object",
+        "required": ["code", "codeVerifier", "deviceKey"],
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 256
+          },
+          "codeVerifier": {
+            "type": "string",
+            "maxLength": 256
+          },
+          "deviceKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 160
+          }
+        }
+      },
+      "DesktopUser": {
+        "type": "object",
+        "required": ["userId", "email", "name", "planCode", "subscriptionStatus", "activeDevicesCount", "maxDevicesAllowed"],
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "name": {
+            "type": "string"
+          },
+          "picture": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true
+          },
+          "planCode": {
+            "$ref": "#/components/schemas/PlanCode"
+          },
+          "subscriptionStatus": {
+            "type": "string"
+          },
+          "trialEndsAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "activeDevicesCount": {
+            "type": "integer"
+          },
+          "maxDevicesAllowed": {
+            "type": "integer",
+            "enum": [1, 5]
+          }
+        }
+      },
+      "DesktopDevice": {
+        "type": "object",
+        "required": ["id", "deviceKey", "name", "platform", "ipAddress"],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "deviceKey": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "platform": {
+            "$ref": "#/components/schemas/Platform"
+          },
+          "ipAddress": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "DesktopEntitlement": {
+        "type": "object",
+        "required": ["allowed", "isFree", "reason", "planRequired", "appName", "checkoutUrl"],
+        "properties": {
+          "allowed": {
+            "type": "boolean"
+          },
+          "isFree": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "planRequired": {
+            "$ref": "#/components/schemas/PlanCode"
+          },
+          "appName": {
+            "type": "string"
+          },
+          "checkoutUrl": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true
+          }
+        }
+      },
+      "DesktopAuthExchangeResponse": {
+        "type": "object",
+        "required": ["success", "authenticated", "accessToken", "leaseToken", "leaseExpiresAt", "leaseGraceUntil", "ipChanged", "user", "device", "entitlement"],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "authenticated": {
+            "type": "boolean",
+            "example": true
+          },
+          "accessToken": {
+            "type": "string"
+          },
+          "leaseToken": {
+            "type": "string",
+            "description": "Ed25519-signed offline lease. Verify with the public key embedded in the app."
+          },
+          "leaseExpiresAt": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "leaseGraceUntil": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "ipChanged": {
+            "type": "boolean"
+          },
+          "user": {
+            "$ref": "#/components/schemas/DesktopUser"
+          },
+          "device": {
+            "$ref": "#/components/schemas/DesktopDevice"
+          },
+          "entitlement": {
+            "$ref": "#/components/schemas/DesktopEntitlement"
+          }
+        }
+      },
+      "DesktopSessionResponse": {
+        "type": "object",
+        "required": ["authenticated", "accessToken", "leaseToken", "leaseExpiresAt", "leaseGraceUntil", "user", "device", "entitlement"],
+        "properties": {
+          "authenticated": {
+            "type": "boolean",
+            "example": true
+          },
+          "accessToken": {
+            "type": "string"
+          },
+          "leaseToken": {
+            "type": "string"
+          },
+          "leaseExpiresAt": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "leaseGraceUntil": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "user": {
+            "$ref": "#/components/schemas/DesktopUser"
+          },
+          "device": {
+            "$ref": "#/components/schemas/DesktopDevice"
+          },
+          "entitlement": {
+            "$ref": "#/components/schemas/DesktopEntitlement"
+          }
+        }
+      },
+      "DownloadPlatform": {
+        "type": "string",
+        "enum": ["macos", "windows"]
+      },
+      "DownloadArch": {
+        "type": "string",
+        "enum": ["arm64", "x64"]
+      },
+      "DesktopDownloadRequest": {
+        "type": "object",
+        "required": ["appSlug"],
+        "properties": {
+          "appSlug": {
+            "type": "string"
+          },
+          "platform": {
+            "$ref": "#/components/schemas/DownloadPlatform",
+            "default": "macos"
+          },
+          "arch": {
+            "$ref": "#/components/schemas/DownloadArch",
+            "default": "arm64"
+          }
+        }
+      },
+      "DesktopDownloadResponse": {
+        "type": "object",
+        "required": ["success", "appSlug", "version", "platform", "arch", "filename", "downloadUrl", "checksumSha256", "signature"],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "appSlug": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "platform": {
+            "$ref": "#/components/schemas/DownloadPlatform"
+          },
+          "arch": {
+            "$ref": "#/components/schemas/DownloadArch"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "downloadUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "checksumSha256": {
+            "type": "string",
+            "nullable": true
+          },
+          "signature": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      }
+    }
+  }
+}

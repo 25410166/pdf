@@ -14,6 +14,8 @@ import { PageFurnitureDialog } from './PageFurnitureDialog';
 import { ChunkErrorBoundary } from './ChunkErrorBoundary';
 import { RestrictDialog, type RestrictPermissions } from './RestrictDialog';
 import { ShareDialog } from './ShareDialog';
+import { AuthDialog } from './AuthDialog';
+import { AuthService } from '@casualoffice/pdf/auth';
 import { saveSnapshot, loadSnapshot, clearSnapshot, relativeTime, type RecoverySnapshot } from './recovery';
 import { isDesktop } from './desk-bridge-bootstrap';
 
@@ -110,6 +112,8 @@ export function App() {
   const objectUrl = useRef<string | null>(null);
   const api = useRef<CasualPdfApi | null>(null);
   const [aiOpen, setAiOpen] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
+  const authService = useMemo(() => new AuthService(), []);
   // Live co-editing opt-in: enable when a collab server is configured AND the URL
   // carries a `?room=`. The share token (→ role, server-enforced) rides `?share=`.
   // The Yjs endpoint is `/yjs` on the collab server.
@@ -209,6 +213,22 @@ export function App() {
     void loadSnapshot().then((s) => { if (s) setRecovery(s); });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Auto-open CookApps account login dialog on launch if user is not signed in
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      const session = await authService.verifySession();
+      if (!active) return;
+      if (!session.authenticated) {
+        const offlineCheck = await authService.checkOfflineLease();
+        if (!offlineCheck.allowed && active) {
+          setAuthOpen(true);
+        }
+      }
+    })();
+    return () => { active = false; };
+  }, [authService]);
 
   // Desktop: load the file the shell bound to this window (?file=) via the native
   // bridge (chunked read), bypassing the welcome screen. Runs once on mount.
@@ -691,7 +711,7 @@ export function App() {
         { label: 'Watermark / Header / Bates…', disabled: !src, onSelect: () => setPageFurniture(true) },
         { label: 'Restrict permissions…', disabled: !src, onSelect: () => setRestricting(true) },
         { divider: true },
-        { label: 'About Casual PDF', onSelect: () => setAbout(true) },
+        { label: 'About CPDF', onSelect: () => setAbout(true) },
       ],
     },
   ];
@@ -847,7 +867,15 @@ export function App() {
           >
             <Icon name={dark ? 'sun' : 'moon'} size={18} />
           </button>
-          <div className="appbar__avatar" aria-hidden="true">S</div>
+          <div
+            className="appbar__avatar"
+            aria-label="CookApps Account Login"
+            title="CookApps Account Login"
+            style={{ cursor: 'pointer' }}
+            onClick={() => setAuthOpen(true)}
+          >
+            CPDF
+          </div>
         </div>
       </header>
 
@@ -943,12 +971,6 @@ export function App() {
               role={role}
               className="viewer"
             />
-            {!aiOpen && (
-              <button type="button" className="ai-fab" data-testid="ai-toggle" onClick={() => setAiOpen(true)} aria-pressed={aiOpen}>
-                <Icon name="comments" size={18} />
-                Ask AI
-              </button>
-            )}
             {aiOpen && (
               <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 360, zIndex: 19, background: 'var(--color-surface, #fff)', boxShadow: 'var(--shadow-3, -2px 0 16px rgba(0,0,0,.14))' }}>
                 <ChunkErrorBoundary label="The AI panel">
@@ -964,11 +986,11 @@ export function App() {
             )}
           </>
         ) : (
-          <div className={`welcome${dragOver ? ' welcome--drag' : ''}`} aria-label="Welcome to Casual PDF">
+          <div className={`welcome${dragOver ? ' welcome--drag' : ''}`} aria-label="Welcome to CPDF">
             <img src="/logo.svg" alt="" className="welcome__logo" width={56} height={56} />
             <div className="welcome__hero">
-              <h1 className="welcome__title">Casual PDF</h1>
-              <p className="welcome__sub">High-fidelity PDF viewer &amp; editor</p>
+              <h1 className="welcome__title">C<span style={{ color: '#dc2626' }}>PDF</span></h1>
+              <p className="welcome__sub">CookApps PDF viewer &amp; editor</p>
             </div>
             <div className="welcome__dropzone" role="button" tabIndex={0} aria-label="Open PDF — click or drop a file"
               onClick={() => fileRef.current?.click()}
@@ -1010,6 +1032,11 @@ export function App() {
           onClose={() => setSharing(false)}
         />
       )}
+      <AuthDialog
+        isOpen={authOpen}
+        onClose={() => setAuthOpen(false)}
+        authService={authService}
+      />
       {pageFurniture && (
         <PageFurnitureDialog
           api={api.current}
@@ -1032,12 +1059,11 @@ export function App() {
 
       {about && (
         <div className="dialog__scrim" role="presentation" onClick={() => setAbout(false)}>
-          <div className="dialog" role="dialog" aria-modal="true" aria-label="About Casual PDF" onClick={(e) => e.stopPropagation()}>
+          <div className="dialog" role="dialog" aria-modal="true" aria-label="About CPDF" onClick={(e) => e.stopPropagation()}>
             <img src="/logo.svg" alt="" width={48} height={48} />
-            <h2 className="dialog__title">Casual PDF</h2>
+            <h2 className="dialog__title">C<span style={{ color: '#dc2626' }}>PDF</span></h2>
             <p className="dialog__body">
-              A high-fidelity PDF viewer &amp; editor — one PDFium engine across web and desktop, with annotation,
-              e-signing, and granular rights.
+              CookApps PDF viewer &amp; editor — desktop authentication, Ed25519 device proof, e-signing, and secure offline lease.
             </p>
             <dl className="dialog__shortcuts">
               <div><dt>Open</dt><dd>⌘O</dd></div>

@@ -27,6 +27,7 @@
 /** True only inside the Casual Office desktop shell (signalled by `?desk=1`). */
 export function isDesktop(): boolean {
   if (typeof window === 'undefined') return false;
+  if (!!(window as any).__TAURI__) return true;
   try {
     return new URL(window.location.href).searchParams.get('desk') === '1';
   } catch {
@@ -177,7 +178,7 @@ declare global {
   }
   async function setWindowTitle(path: string) {
     try {
-      await tauri?.window?.getCurrentWindow?.().setTitle?.(`PDF — ${basename(path)}`);
+      await tauri?.window?.getCurrentWindow?.().setTitle?.(`CPDF — ${basename(path)}`);
     } catch {
       /* non-fatal */
     }
