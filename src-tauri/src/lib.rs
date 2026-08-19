@@ -277,6 +277,11 @@ fn simple_hash(s: &str) -> u128 {
     hash
 }
 
+#[tauri::command]
+fn write_save_chunk(path: String, offset: u64, bytes: Vec<u8>) -> Result<(), String> {
+    write_save_document_chunk(path, offset, bytes)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -304,6 +309,7 @@ pub fn run() {
             document_size,
             read_document_chunk,
             begin_save_document,
+            write_save_chunk,
             write_save_document_chunk,
             commit_save_document,
             set_window_dirty,
