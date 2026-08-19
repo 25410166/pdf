@@ -1,6 +1,6 @@
 [package]
 name = "cpdf"
-version = "1.0.4"
+version = "1.0.5"
 description = "CPDF — CookApps PDF desktop application"
 authors = ["CookApps Team"]
 edition = "2021"

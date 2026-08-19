@@ -50,10 +50,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: app-v__VERSION__
-          releaseName: 'CPDF Release v__VERSION__'
+          tagName: v__VERSION__
+          releaseName: 'CPDF v__VERSION__'
           releaseBody: 'Automated release build for Windows (.exe) and macOS (.dmg)'
-          releaseDraft: true
+          releaseDraft: false
           prerelease: false
 
       - name: Upload Build Artifacts
