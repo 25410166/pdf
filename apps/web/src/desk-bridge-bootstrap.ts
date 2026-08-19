@@ -226,7 +226,12 @@ declare global {
     async openFile(): Promise<void> {
       const path = (await inv('pick_open_document')) as string | null;
       if (!path) return;
-      await inv('open_document_window', { kind: 'pdf', filePath: path });
+      filePath = path;
+      try {
+        window.dispatchEvent(new CustomEvent('deskapp:open-file', { detail: { path } }));
+      } catch {
+        /* ignore */
+      }
     },
 
     async resolveSystemFont(family: string, weight: number, italic: boolean): Promise<Uint8Array | null> {

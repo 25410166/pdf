@@ -257,6 +257,56 @@ export function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Desktop: Listen for deskapp:open-file DOM event & Tauri window drag-and-drop
+  useEffect(() => {
+    if (!desktop) return;
+    const onOpenFile = async (e: Event) => {
+      const path = (e as CustomEvent<{ path?: string }>).detail?.path;
+      if (!path) return;
+      if (!confirmDiscard()) return;
+      try {
+        const bridge = window.__deskApp__;
+        if (!bridge) return;
+        bridge.filePath = path;
+        const buf = await bridge.loadDocument(path);
+        revokeObjectUrl();
+        clearStack(undoStack);
+        clearStack(redoStack);
+        setRecovery(null);
+        const url = URL.createObjectURL(new Blob([buf], { type: 'application/pdf' }));
+        objectUrl.current = url;
+        setSrc(url);
+        setTitle(path.split(/[/\\]/).pop()!.replace(/\.pdf$/i, ''));
+        setMode('view');
+        setDirty(false);
+      } catch (err) {
+        console.error('Failed to open file from desktop bridge', err);
+      }
+    };
+    window.addEventListener('deskapp:open-file', onOpenFile);
+
+    let tauriUnlisten: (() => void) | undefined;
+    const tauri = (window as any).__TAURI__;
+    if (tauri?.window?.getCurrentWindow) {
+      void tauri.window.getCurrentWindow().onDragDropEvent((evt: { payload: { type: string; paths?: string[] } }) => {
+        if (evt.payload?.type === 'drop' && evt.payload?.paths?.length) {
+          const pdfPath = evt.payload.paths.find((p) => p.toLowerCase().endsWith('.pdf'));
+          if (pdfPath) {
+            window.dispatchEvent(new CustomEvent('deskapp:open-file', { detail: { path: pdfPath } }));
+          }
+        }
+      }).then((unlisten: () => void) => {
+        tauriUnlisten = unlisten;
+      });
+    }
+
+    return () => {
+      window.removeEventListener('deskapp:open-file', onOpenFile);
+      if (tauriUnlisten) tauriUnlisten();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [desktop]);
+
   // Desktop: follow the shell's theme (initial ?theme= + live deskapp:theme events).
   useEffect(() => {
     if (!desktop) return;

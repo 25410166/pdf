@@ -291,6 +291,8 @@ pub fn run() {
             for arg in argv {
                 if arg.starts_with("cookapps-cpdf://") {
                     let _ = app.emit("cpdf:deeplink", serde_json::json!({ "url": arg }));
+                } else if arg.to_lowercase().ends_with(".pdf") && Path::new(&arg).exists() {
+                    let _ = app.emit("cpdf:open_file", serde_json::json!({ "path": arg }));
                 }
             }
         }))
@@ -329,6 +331,19 @@ pub fn run() {
                         }
                     }
                 });
+
+                // Check command line args on initial startup for opened PDF path
+                let args: Vec<String> = std::env::args().collect();
+                for arg in args.iter().skip(1) {
+                    if arg.to_lowercase().ends_with(".pdf") && Path::new(arg).exists() {
+                        let app_handle = app.handle().clone();
+                        let path_str = arg.clone();
+                        tauri::async_runtime::spawn(async move {
+                            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+                            let _ = app_handle.emit("cpdf:open_file", serde_json::json!({ "path": path_str }));
+                        });
+                    }
+                }
             }
             Ok(())
         })

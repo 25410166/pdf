@@ -44,6 +44,11 @@ window.addEventListener('vite:preloadError', (e) => {
     if (!url) return;
     window.dispatchEvent(new CustomEvent('cpdf:deeplink', { detail: { url } }));
   });
+  tauri.event.listen('cpdf:open_file', (event: { payload: { path?: string } }) => {
+    const path = event.payload?.path;
+    if (!path) return;
+    window.dispatchEvent(new CustomEvent('deskapp:open-file', { detail: { path } }));
+  });
 })();
 
 createRoot(document.getElementById('root')!).render(
