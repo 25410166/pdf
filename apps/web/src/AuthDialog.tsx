@@ -11,6 +11,7 @@ import {
 
 export interface AuthDialogProps {
   isOpen: boolean;
+  isMandatory?: boolean;
   onClose?: () => void;
   onAuthenticated?: (user: UserPlanInfo, entitlement: EntitlementInfo) => void;
   authService: AuthService;
@@ -30,7 +31,7 @@ export type LoginState =
   | 'device_revoked'
   | 'error';
 
-export function AuthDialog({ isOpen, onClose, onAuthenticated, authService }: AuthDialogProps) {
+export function AuthDialog({ isOpen, isMandatory, onClose, onAuthenticated, authService }: AuthDialogProps) {
   const [state, setState] = useState<LoginState>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [user, setUser] = useState<UserPlanInfo | null>(null);
@@ -163,11 +164,30 @@ export function AuthDialog({ isOpen, onClose, onAuthenticated, authService }: Au
         maxWidth: '460px',
         width: '90%',
         boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
-        border: '2px solid var(--border-color, #000000)'
+        border: '2px solid var(--border-color, #000000)',
+        position: 'relative'
       }}>
-        <h2 style={{ margin: '0 0 12px 0', fontSize: '20px', fontWeight: 700 }}>
-          CPDF Account Sign-In
-        </h2>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+          <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 700 }}>
+            CPDF Account Sign-In
+          </h2>
+          {!isMandatory && onClose && (
+            <button
+              onClick={onClose}
+              style={{
+                background: 'none',
+                border: 'none',
+                fontSize: '20px',
+                cursor: 'pointer',
+                color: '#666',
+                padding: '0 4px'
+              }}
+              aria-label="Close dialog"
+            >
+              ✕
+            </button>
+          )}
+        </div>
 
         {state === 'idle' && (
           <div>

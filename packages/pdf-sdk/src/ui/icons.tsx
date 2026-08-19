@@ -1,18 +1,6 @@
 // Copyright (c) 2026 Casual Office
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * Icon set for the viewer chrome, backed by **Lucide** (lucide-react) — matching
- * the Casual Office neobrutalist system used across Drive/Docs/Sheets.
- *
- * Design language: Lucide is a single stroke style (no filled variants), which
- * suits neobrutalist — the ACTIVE/selected state is signalled by the violet
- * background + color the button applies, plus a slightly heavier stroke here
- * (`filled` → bolder stroke). Icons inherit `currentColor`, so the button controls
- * color. Default render size is 20px (the desktop-toolbar standard).
- *
- * License: Lucide is ISC (permissive, in-policy).
- */
 import type { ComponentType } from 'react';
 import {
   Lock,
@@ -69,43 +57,46 @@ import {
   PenTool,
   Keyboard,
   RefreshCw,
-  Image,
+  Image as ImageLucide,
   RectangleHorizontal,
+  User,
   type LucideProps,
 } from 'lucide-react';
 
+type Glyph = ComponentType<LucideProps>;
+
 export type IconName =
   | 'lock'
-  | 'chevron-left'
-  | 'chevron-right'
-  | 'zoom-in'
-  | 'zoom-out'
+  | 'prev'
+  | 'next'
+  | 'dropdown'
+  | 'zoomin'
+  | 'zoomout'
   | 'fit-width'
   | 'fit-page'
   | 'rotate'
   | 'search'
-  | 'thumbnails'
-  | 'outline'
+  | 'thumbs'
+  | 'toc'
   | 'hand'
-  | 'fullscreen-enter'
-  | 'fullscreen-exit'
-  | 'spread'
+  | 'fullscreen'
+  | 'exit-fullscreen'
+  | 'presentation'
   | 'sun'
   | 'moon'
   | 'close'
-  | 'eye'
-  | 'pencil'
+  | 'view'
+  | 'edit'
   | 'suggest'
-  | 'chevron-down'
   | 'check'
-  | 'scroll-h'
-  | 'cursor'
-  | 'marker'
+  | 'two-page'
+  | 'select'
+  | 'highlight'
   | 'underline'
-  | 'strikeout'
+  | 'strike'
   | 'squiggly'
   | 'ink'
-  | 'text-tool'
+  | 'free-text'
   | 'align-left'
   | 'align-center'
   | 'align-right'
@@ -113,8 +104,8 @@ export type IconName =
   | 'comments'
   | 'copy'
   | 'organize'
-  | 'square'
-  | 'circle'
+  | 'rect'
+  | 'ellipse'
   | 'arrow'
   | 'undo'
   | 'redo'
@@ -130,43 +121,59 @@ export type IconName =
   | 'keyboard'
   | 'refresh'
   | 'image'
-  | 'redact';
+  | 'redact'
+  | 'text-tool'
+  | 'user'
+  | 'eye'
+  | 'pencil'
+  | 'marker'
+  | 'strikeout'
+  | 'square'
+  | 'circle'
+  | 'thumbnails'
+  | 'outline'
+  | 'cursor'
+  | 'chevron-left'
+  | 'chevron-right'
+  | 'zoom-in'
+  | 'zoom-out'
+  | 'spread'
+  | 'scroll-h'
+  | 'fullscreen-enter'
+  | 'fullscreen-exit';
 
-type Glyph = ComponentType<LucideProps>;
-
-/** One Lucide glyph per icon name (call sites are unchanged). */
 const MAP: Record<IconName, Glyph> = {
   lock: Lock,
-  'chevron-left': ChevronLeft,
-  'chevron-right': ChevronRight,
-  'chevron-down': ChevronDown,
-  'zoom-in': ZoomIn,
-  'zoom-out': ZoomOut,
+  prev: ChevronLeft,
+  next: ChevronRight,
+  dropdown: ChevronDown,
+  zoomin: ZoomIn,
+  zoomout: ZoomOut,
   'fit-width': MoveHorizontal,
   'fit-page': Scaling,
   rotate: RotateCw,
   search: Search,
-  thumbnails: LayoutGrid,
-  outline: List,
+  thumbs: LayoutGrid,
+  toc: List,
   hand: Hand,
-  'fullscreen-enter': Maximize,
-  'fullscreen-exit': Minimize,
-  spread: BookOpen,
+  fullscreen: Maximize,
+  'exit-fullscreen': Minimize,
+  presentation: BookOpen,
   sun: Sun,
   moon: Moon,
   close: X,
-  eye: Eye,
-  pencil: Pencil,
+  view: Eye,
+  edit: Pencil,
   suggest: MessageSquareText,
   check: Check,
-  'scroll-h': Columns2,
-  cursor: MousePointer2,
-  marker: Highlighter,
+  'two-page': Columns2,
+  select: MousePointer2,
+  highlight: Highlighter,
   underline: Underline,
-  strikeout: Strikethrough,
+  strike: Strikethrough,
   squiggly: Waves,
   ink: Paintbrush,
-  'text-tool': Type,
+  'free-text': Type,
   'align-left': AlignLeft,
   'align-center': AlignCenter,
   'align-right': AlignRight,
@@ -174,8 +181,8 @@ const MAP: Record<IconName, Glyph> = {
   comments: MessageSquare,
   copy: Copy,
   organize: LayoutDashboard,
-  square: Square,
-  circle: Circle,
+  rect: Square,
+  ellipse: Circle,
   arrow: ArrowRight,
   undo: Undo2,
   redo: Redo2,
@@ -190,8 +197,27 @@ const MAP: Record<IconName, Glyph> = {
   draw: PenTool,
   keyboard: Keyboard,
   refresh: RefreshCw,
-  image: Image,
+  image: ImageLucide,
   redact: RectangleHorizontal,
+  'text-tool': Type,
+  user: User,
+  eye: Eye,
+  pencil: Pencil,
+  marker: Highlighter,
+  strikeout: Strikethrough,
+  square: Square,
+  circle: Circle,
+  thumbnails: LayoutGrid,
+  outline: List,
+  cursor: MousePointer2,
+  'chevron-left': ChevronLeft,
+  'chevron-right': ChevronRight,
+  'zoom-in': ZoomIn,
+  'zoom-out': ZoomOut,
+  spread: BookOpen,
+  'scroll-h': Columns2,
+  'fullscreen-enter': Maximize,
+  'fullscreen-exit': Minimize,
 };
 
 interface IconProps {
@@ -204,6 +230,6 @@ interface IconProps {
 }
 
 export function Icon({ name, filled, size = 20, className }: IconProps) {
-  const Glyph = MAP[name];
+  const Glyph = MAP[name] || MAP.info;
   return <Glyph size={size} strokeWidth={filled ? 2.4 : 1.9} className={className} aria-hidden />;
 }

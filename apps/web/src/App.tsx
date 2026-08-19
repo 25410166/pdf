@@ -16,7 +16,7 @@ import { RestrictDialog, type RestrictPermissions } from './RestrictDialog';
 import { ShareDialog } from './ShareDialog';
 import { AuthDialog } from './AuthDialog';
 import { AuthService } from '@casualoffice/pdf/auth';
-import { saveSnapshot, loadSnapshot, clearSnapshot, relativeTime, type RecoverySnapshot } from './recovery';
+import { saveSnapshot, loadSnapshot, clearSnapshot, type RecoverySnapshot } from './recovery';
 import { isDesktop } from './desk-bridge-bootstrap';
 
 const DEFAULT_PDF = 'https://snippet.embedpdf.com/ebook.pdf';
@@ -214,15 +214,26 @@ export function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const [authenticated, setAuthenticated] = useState<boolean>(false);
+  const [userInfo, setUserInfo] = useState<{ email?: string; name?: string } | null>(null);
+
   // Auto-open CookApps account login dialog on launch if user is not signed in
   useEffect(() => {
     let active = true;
     void (async () => {
       const session = await authService.verifySession();
       if (!active) return;
-      if (!session.authenticated) {
+      if (session.authenticated && session.user) {
+        setAuthenticated(true);
+        setUserInfo({ email: session.user.email, name: session.user.name });
+        setAuthOpen(false);
+      } else {
         const offlineCheck = await authService.checkOfflineLease();
-        if (!offlineCheck.allowed && active) {
+        if (offlineCheck.allowed && active) {
+          setAuthenticated(true);
+          setAuthOpen(false);
+        } else if (active) {
+          setAuthenticated(false);
           setAuthOpen(true);
         }
       }
@@ -914,18 +925,29 @@ export function App() {
             aria-label={dark ? 'Switch to light theme' : 'Switch to dark theme'}
             aria-pressed={dark}
             onClick={() => setDark((v) => !v)}
-          >
-            <Icon name={dark ? 'sun' : 'moon'} size={18} />
-          </button>
-          <div
-            className="appbar__avatar"
-            aria-label="CookApps Account Login"
-            title="CookApps Account Login"
-            style={{ cursor: 'pointer' }}
+          />
+          <button
+            type="button"
+            className="appbar__avatar-btn"
+            aria-label={authenticated ? `Signed in (${userInfo?.email || 'CookApps Account'})` : 'Sign in to CookApps Account'}
+            title={authenticated ? `Signed in (${userInfo?.email || 'CookApps Account'})` : 'Sign in to CookApps Account'}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%',
+              backgroundColor: authenticated ? '#15803d' : '#dc2626',
+              color: '#ffffff',
+              border: '2px solid var(--border-color, #000000)',
+              cursor: 'pointer',
+              padding: 0
+            }}
             onClick={() => setAuthOpen(true)}
           >
-            CPDF
-          </div>
+            <Icon name="user" size={16} />
+          </button>
         </div>
       </header>
 
@@ -938,14 +960,11 @@ export function App() {
       {recovery && (
         <div className="recoverybar" role="status">
           <Icon name="refresh" size={16} />
-          <span className="recoverybar__text">
-            Unsaved changes from a previous session{recovery.title ? ` (“${recovery.title}”)` : ''} —{' '}
-            {relativeTime(recovery.savedAt, Date.now())}.
-          </span>
-          <button type="button" className="recoverybar__btn recoverybar__btn--primary" onClick={() => restoreRecovery(recovery)}>
+          <span>Restored unsaved document state from prior session</span>
+          <button type="button" className="recoverybar__btn" onClick={() => restoreRecovery(recovery)}>
             Restore
           </button>
-          <button type="button" className="recoverybar__btn" onClick={discardRecovery}>
+          <button type="button" className="recoverybar__btn recoverybar__btn--ghost" onClick={discardRecovery}>
             Discard
           </button>
         </div>
@@ -955,10 +974,10 @@ export function App() {
         ref={fileRef}
         type="file"
         accept="application/pdf,.pdf"
-        hidden
+        style={{ display: 'none' }}
         onChange={(e) => {
           const f = e.target.files?.[0];
-          if (f) openFromFile(f);
+          if (f && confirmDiscard()) openFromFile(f);
           e.target.value = '';
         }}
       />
@@ -966,7 +985,7 @@ export function App() {
         ref={insertFileRef}
         type="file"
         accept="application/pdf,.pdf"
-        hidden
+        style={{ display: 'none' }}
         onChange={(e) => {
           const f = e.target.files?.[0];
           if (f) void insertPdf(f);
@@ -1028,7 +1047,6 @@ export function App() {
                     <AiPanel
                       getApi={() => api.current}
                       onClose={() => setAiOpen(false)}
-                      provider={COLLAB_WS_URL ? { provider: 'auto', collabWsUrl: COLLAB_WS_URL } : undefined}
                     />
                   </Suspense>
                 </ChunkErrorBoundary>
@@ -1036,7 +1054,7 @@ export function App() {
             )}
           </>
         ) : (
-          <div className={`welcome${dragOver ? ' welcome--drag' : ''}`} aria-label="Welcome to CPDF">
+          <div className="welcome">
             <img src="/logo.svg" alt="" className="welcome__logo" width={56} height={56} />
             <div className="welcome__hero">
               <h1 className="welcome__title">C<span style={{ color: '#dc2626' }}>PDF</span></h1>
@@ -1084,7 +1102,15 @@ export function App() {
       )}
       <AuthDialog
         isOpen={authOpen}
-        onClose={() => setAuthOpen(false)}
+        isMandatory={!authenticated}
+        onClose={() => {
+          if (authenticated) setAuthOpen(false);
+        }}
+        onAuthenticated={(u) => {
+          setAuthenticated(true);
+          setUserInfo({ email: u.email, name: u.name });
+          setAuthOpen(false);
+        }}
         authService={authService}
       />
       {pageFurniture && (

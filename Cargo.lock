@@ -774,7 +774,7 @@ dependencies = [
 
 [[package]]
 name = "cpdf"
-version = "1.0.7"
+version = "1.0.8"
 dependencies = [
  "directories",
  "reqwest 0.12.28",
